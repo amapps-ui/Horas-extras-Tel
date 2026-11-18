@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Horas extras</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#e9edf2; --ink:#14213d; --muted:#5b6678; --line:#c9d1dc;
+  --panel:#ffffff; --accent:#f2b705; --accent-ink:#14213d; --danger:#b3261e;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1624; --ink:#e8ecf3; --muted:#9aa6ba; --line:#2a364d;
+    --panel:#17213a; --accent:#f2b705; --accent-ink:#14213d; --danger:#ff8a80;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html{height:100%}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.5}
+.num{font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+main{max-width:720px;margin:0 auto;padding:24px 16px 64px}
+h1,h2{margin:0;font-weight:600;letter-spacing:-.01em}
+h1{font-size:1.5rem}
+h2{font-size:1.1rem}
+.hidden{display:none!important}
+label{display:block;font-size:.875rem;color:var(--muted);margin-bottom:4px}
+input{width:100%;font:inherit;color:var(--ink);background:var(--bg);
+  border:1.5px solid var(--line);border-radius:6px;padding:10px 12px}
+input:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button{font:inherit;cursor:pointer;border-radius:6px;border:1.5px solid var(--ink);
+  background:transparent;color:var(--ink);padding:10px 16px;font-weight:500}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+button.link{border:none;padding:4px 0;text-decoration:underline;color:var(--muted)}
+button.small{padding:4px 10px;font-size:.85rem}
+.msg{min-height:1.4em;font-size:.9rem;color:var(--danger);margin:8px 0 0}
+.field{margin-bottom:14px}
+.msg.ok{color:var(--muted)}
+
+/* tela de entrada */
+#auth{max-width:380px;margin:12vh auto 0}
+#auth p.lead{color:var(--muted);margin:8px 0 24px}
+#auth form{background:var(--panel);border:1.5px solid var(--ink);padding:24px;border-radius:8px}
+.tabs{display:flex;gap:16px;margin-bottom:20px;border-bottom:1.5px solid var(--line)}
+.tabs button{border:none;border-bottom:3px solid transparent;border-radius:0;padding:6px 0;color:var(--muted)}
+.tabs button[aria-selected="true"]{border-bottom-color:var(--accent);color:var(--ink)}
+
+/* topo */
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:24px}
+.top span{color:var(--muted);font-size:.9rem}
+
+/* total do mês */
+.total{border-top:4px solid var(--ink);padding:16px 0 20px;display:flex;
+  justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.total .big{font-size:clamp(2.6rem,12vw,4.2rem);line-height:1;font-weight:500}
+.total small{display:block;color:var(--muted);margin-top:6px}
+.total input{width:auto}
+
+/* formulário de lançamento */
+#entryForm{background:var(--panel);border:1.5px solid var(--line);border-radius:8px;padding:20px;margin-bottom:28px}
+.row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media (max-width:520px){.row{grid-template-columns:1fr 1fr}.row .field:first-child{grid-column:1/-1}}
+#preview{font-size:.9rem;color:var(--muted);margin:0 0 12px;min-height:1.4em}
+
+/* lista */
+.list-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-weight:500;font-size:.85rem;color:var(--muted);padding:8px 6px;border-bottom:1.5px solid var(--ink)}
+td{padding:12px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+td.dur{font-weight:500;white-space:nowrap}
+.note{display:block;color:var(--muted);font-size:.85rem}
+.table-wrap{overflow-x:auto}
+.empty{padding:28px 0;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){button{transition:background .15s}}
+</style>
+</head>
+<body>
+<main>
+
+<!-- Entrar / criar conta -->
+<section id="auth">
+  <h1>Horas extras</h1>
+  <p class="lead">Anote quando você começou e terminou cada hora extra e veja o total do mês, em qualquer aparelho.</p>
+  <form id="authForm" autocomplete="on">
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tabLogin" aria-selected="true">Entrar</button>
+      <button type="button" role="tab" id="tabSignup" aria-selected="false">Criar conta</button>
+    </div>
+    <div class="field">
+      <label for="user">E-mail</label>
+      <input id="user" name="email" type="email" autocomplete="email" required>
+    </div>
+    <div class="field">
+      <label for="pass">Senha</label>
+      <input id="pass" name="password" type="password" autocomplete="current-password" required minlength="6">
+    </div>
+    <button class="primary" type="submit" id="authBtn" style="width:100%">Entrar</button>
+    <p class="msg" id="authMsg" role="alert"></p>
+  </form>
+</section>
+
+<!-- Aplicativo -->
+<section id="app" class="hidden">
+  <div class="top">
+    <h1>Horas extras</h1>
+    <div><span id="who"></span> <button class="link" id="logout" type="button">Sair</button></div>
+  </div>
+
+  <div class="total">
+    <div>
+      <div class="big num" id="totalMonth">0h00</div>
+      <small id="countMonth">Nenhum lançamento neste mês</small>
+    </div>
+    <div>
+      <label for="month">Mês</label>
+      <input type="month" id="month">
+    </div>
+  </div>
+
+  <form id="entryForm">
+    <h2 style="margin-bottom:14px">Novo lançamento</h2>
+    <div class="row">
+      <div class="field"><label for="date">Data</label><input type="date" id="date" required></div>
+      <div class="field"><label for="start">Início</label><input type="time" id="start" required></div>
+      <div class="field"><label for="end">Término</label><input type="time" id="end" required></div>
+    </div>
+    <div class="field">
+      <label for="obs">Observação (opcional)</label>
+      <input id="obs" maxlength="120" placeholder="Ex.: fechamento do mês">
+    </div>
+    <p id="preview" class="num"></p>
+    <button class="primary" type="submit">Salvar lançamento</button>
+    <p class="msg" id="entryMsg" role="alert"></p>
+  </form>
+
+  <div class="list-head">
+    <h2>Lançamentos do mês</h2>
+    <button class="small" id="exportBtn" type="button">Baixar CSV</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Data</th><th>Horário</th><th>Total</th><th><span class="sr" style="position:absolute;left:-9999px">Ações</span></th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <p class="empty hidden" id="empty">Nenhuma hora extra neste mês. Preencha o formulário acima para anotar a primeira.</p>
+</section>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+(function(){
+  /* 1) Cole aqui os dados do seu projeto (Supabase > Project Settings > API) */
+  var SUPABASE_URL = "sb_publishable_jrre_rb9yqCInRKBeSUE5w_5Eo2M_Fm";
+  var SUPABASE_KEY = "sb_secret_8hii5rGXdH7G6jD58HgU7A_siTk0m3O";
+
+  var $ = function(id){ return document.getElementById(id); };
+  var mode = "login", cache = [], sb = null;
+
+  if(SUPABASE_URL.indexOf("COLE_") === 0){
+    $("authMsg").textContent = "Falta colar a URL e a chave do Supabase no início do script do index.html.";
+  } else {
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  }
+
+  function erro(e){
+    var m = (e && e.message) || "";
+    if(/Invalid login/i.test(m)) return "E-mail ou senha incorretos.";
+    if(/already registered/i.test(m)) return "Esse e-mail já tem conta. Entre com a sua senha.";
+    if(/not confirmed/i.test(m)) return "Confirme seu e-mail pelo link que enviamos e tente de novo.";
+    if(/at least/i.test(m)) return "A senha precisa ter pelo menos 6 caracteres.";
+    return "Algo deu errado: " + m;
+  }
+
+  /* entrar / criar conta */
+  function setMode(m){
+    mode = m;
+    $("tabLogin").setAttribute("aria-selected", m === "login");
+    $("tabSignup").setAttribute("aria-selected", m === "signup");
+    $("authBtn").textContent = m === "login" ? "Entrar" : "Criar conta";
+    $("pass").autocomplete = m === "login" ? "current-password" : "new-password";
+    $("authMsg").className = "msg"; $("authMsg").textContent = "";
+  }
+  $("tabLogin").onclick = function(){ setMode("login"); };
+  $("tabSignup").onclick = function(){ setMode("signup"); };
+
+  $("authForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    if(!sb) return;
+    var email = $("user").value.trim(), pass = $("pass").value, msg = $("authMsg");
+    msg.className = "msg"; msg.textContent = "";
+    var req = mode === "signup"
+      ? sb.auth.signUp({ email: email, password: pass })
+      : sb.auth.signInWithPassword({ email: email, password: pass });
+    req.then(function(r){
+      if(r.error){ msg.textContent = erro(r.error); return; }
+      if(r.data.session){ startSession(r.data.session.user); return; }
+      setMode("login");
+      msg.className = "msg ok";
+      msg.textContent = "Conta criada. Abra o link de confirmação enviado ao seu e-mail e depois entre.";
+    });
+  });
+
+  function startSession(user){
+    $("authForm").reset();
+    $("auth").classList.add("hidden");
+    $("app").classList.remove("hidden");
+    $("who").textContent = user.email;
+    var today = new Date();
+    $("date").value = iso(today);
+    $("month").value = iso(today).slice(0, 7);
+    loadMonth();
+  }
+  $("logout").onclick = function(){
+    if(!sb) return;
+    sb.auth.signOut().then(function(){
+      cache = [];
+      $("app").classList.add("hidden");
+      $("auth").classList.remove("hidden");
+      setMode("login");
+    });
+  };
+
+  /* datas e horas */
+  function iso(d){
+    var m = ("0" + (d.getMonth() + 1)).slice(-2), day = ("0" + d.getDate()).slice(-2);
+    return d.getFullYear() + "-" + m + "-" + day;
+  }
+  function hm(t){ return t.slice(0, 5); }
+  function toMin(t){ var p = t.split(":"); return (+p[0]) * 60 + (+p[1]); }
+  function diff(start, end){
+    var d = toMin(end) - toMin(start);
+    return d <= 0 ? d + 1440 : d; /* término após meia-noite conta no dia seguinte */
+  }
+  function fmt(min){ var h = Math.floor(min / 60), m = min % 60; return h + "h" + ("0" + m).slice(-2); }
+  function brDate(s){ var p = s.split("-"); return p[2] + "/" + p[1] + "/" + p[0]; }
+
+  function updatePreview(){
+    var s = $("start").value, e = $("end").value;
+    $("preview").textContent = (s && e)
+      ? "Total deste lançamento: " + fmt(diff(s, e)) + (toMin(e) <= toMin(s) ? " (termina no dia seguinte)" : "")
+      : "";
+  }
+  $("start").oninput = updatePreview;
+  $("end").oninput = updatePreview;
+
+  /* lançamentos no Supabase */
+  function loadMonth(){
+    var m = $("month").value;
+    if(!sb || !m) return;
+    var p = m.split("-"), last = ("0" + new Date(+p[0], +p[1], 0).getDate()).slice(-2);
+    sb.from("horas_extras").select("*")
+      .gte("data", m + "-01").lte("data", m + "-" + last)
+      .order("data").order("inicio")
+      .then(function(r){
+        if(r.error){ $("entryMsg").textContent = erro(r.error); return; }
+        cache = r.data || []; render();
+      });
+  }
+  $("month").onchange = loadMonth;
+
+  $("entryForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    if(!sb) return;
+    var item = {
+      data: $("date").value, inicio: $("start").value, termino: $("end").value,
+      observacao: $("obs").value.trim() || null
+    };
+    sb.from("horas_extras").insert(item).then(function(r){
+      if(r.error){ $("entryMsg").textContent = erro(r.error); return; }
+      $("entryMsg").textContent = "";
+      $("month").value = item.data.slice(0, 7);
+      $("start").value = ""; $("end").value = ""; $("obs").value = ""; $("preview").textContent = "";
+      loadMonth();
+    });
+  });
+
+  function render(){
+    var tbody = $("rows"), total = 0;
+    tbody.innerHTML = "";
+    cache.forEach(function(x){
+      var mins = diff(hm(x.inicio), hm(x.termino)); total += mins;
+      var tr = document.createElement("tr");
+      var td1 = document.createElement("td"); td1.className = "num"; td1.textContent = brDate(x.data);
+      var td2 = document.createElement("td"); td2.className = "num";
+      td2.textContent = hm(x.inicio) + " – " + hm(x.termino);
+      if(x.observacao){
+        var n = document.createElement("span"); n.className = "note"; n.style.fontFamily = "inherit";
+        n.textContent = x.observacao; td2.appendChild(n);
+      }
+      var td3 = document.createElement("td"); td3.className = "dur num"; td3.textContent = fmt(mins);
+      var td4 = document.createElement("td"); td4.style.textAlign = "right";
+      var del = document.createElement("button"); del.type = "button"; del.className = "small";
+      del.textContent = "Excluir";
+      del.setAttribute("aria-label", "Excluir lançamento de " + brDate(x.data));
+      del.onclick = function(){
+        if(!confirm("Excluir o lançamento de " + brDate(x.data) + " (" + hm(x.inicio) + " – " + hm(x.termino) + ")?")) return;
+        sb.from("horas_extras").delete().eq("id", x.id).then(function(r){
+          if(r.error){ $("entryMsg").textContent = erro(r.error); return; }
+          loadMonth();
+        });
+      };
+      td4.appendChild(del);
+      [td1, td2, td3, td4].forEach(function(td){ tr.appendChild(td); });
+      tbody.appendChild(tr);
+    });
+    $("totalMonth").textContent = fmt(total);
+    $("countMonth").textContent = cache.length
+      ? cache.length + (cache.length === 1 ? " lançamento neste mês" : " lançamentos neste mês")
+      : "Nenhum lançamento neste mês";
+    $("empty").classList.toggle("hidden", cache.length > 0);
+    $("exportBtn").disabled = !cache.length;
+  }
+
+  /* exportar CSV */
+  $("exportBtn").onclick = function(){
+    var lines = ["Data;Inicio;Termino;Total;Observacao"];
+    cache.forEach(function(x){
+      lines.push([brDate(x.data), hm(x.inicio), hm(x.termino), fmt(diff(hm(x.inicio), hm(x.termino))),
+        '"' + (x.observacao || "").replace(/"/g, '""') + '"'].join(";"));
+    });
+    var blob = new Blob(["\ufeff" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "horas-extras-" + $("month").value + ".csv";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+  };
+
+  /* retomar sessão */
+  if(sb){
+    sb.auth.getSession().then(function(r){
+      if(r.data && r.data.session) startSession(r.data.session.user);
+    });
+  }
+})();
+</script>
+</body>
+</html>
